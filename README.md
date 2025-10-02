@@ -1,6 +1,6 @@
 # Next.js Workshop: Filter Clashes - route.ts
 
-In this task you'll implement a clash filtering system using [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers) and custom hooks. You'll learn how to create API endpoints, implement client-side data fetching, build reusable hooks, and create an interactive filter component that provides real-time search functionality.
+In this task you'll implement a clash filtering system using [Next.js Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers) and custom hooks. You'll learn how to create API endpoints, implement client-side data fetching, build reusable hooks, and create an interactive filter component with search button functionality.
 
 ## Route Handlers and API Routes Overview
 
@@ -9,7 +9,6 @@ Before proceeding, familiarize yourself with Next.js API concepts:
 - **[Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)** - Complete guide to creating API endpoints
 - **[Dynamic Route Segments](https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes)** - For parameterized routes
 - **[Custom Hooks](https://react.dev/learn/reusing-logic-with-custom-hooks)** - Building reusable data fetching logic
-- **[Debouncing](https://react.dev/learn/escape-hatches#debouncing)** - Optimizing search performance
 
 > [!IMPORTANT] > **Client vs Server Data Fetching**: While Server Components excel at initial data loading, interactive filtering requires client-side fetching to update the UI dynamically without page refreshes.
 
@@ -175,11 +174,10 @@ Build a reusable hook for clash data management:
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { gql } from '@apollo/client';
-import { type GetAllClashesQuery } from '@/gql/graphql';
+import { type GetAllClashesForFilterQuery } from '@/gql/graphql';
 
 // Extract the clash type from the query result
-type ClashFromQuery = GetAllClashesQuery['clashes'][0];
+type ClashFromQuery = GetAllClashesForFilterQuery['clashes'][0];
 
 interface UseClashesReturn {
   clashes: ClashFromQuery[];
@@ -256,133 +254,111 @@ Key features:
 
 ### Create ClashFilter Component
 
-Build an interactive search input with debouncing:
+Build an interactive search input with search button:
 
 ```typescript
 // src/components/clash-filter/clash-filter.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { Search, X } from 'lucide-react';
 
 interface ClashFilterProps {
   onFilter: (term: string) => void;
   loading?: boolean;
   placeholder?: string;
-  debounceMs?: number;
 }
 
 export default function ClashFilter({
   onFilter,
   loading = false,
   placeholder = 'Search clashes by title or description...',
-  debounceMs = 300,
 }: ClashFilterProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Debounced filter function
-  const debouncedFilter = useCallback(
-    debounce((term: string) => {
-      onFilter(term);
-    }, debounceMs),
-    [onFilter, debounceMs],
-  );
-
-  // Trigger filter when search term changes
-  useEffect(() => {
-    debouncedFilter(searchTerm);
-    return () => {
-      debouncedFilter.cancel?.();
-    };
-  }, [searchTerm, debouncedFilter]);
+  const handleSearch = () => {
+    onFilter(searchTerm);
+  };
 
   const handleClear = () => {
     setSearchTerm('');
+    onFilter(''); // Clear the search when clearing input
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   return (
     <div className="relative w-full max-w-md">
-      <div className="relative">
-        {/* Search Icon */}
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search
-            className={`h-5 w-5 ${loading ? 'text-blue-500 animate-pulse' : 'text-gray-400'}`}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          {/* Search Icon */}
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search
+              className={`h-5 w-5 ${loading ? 'text-blue-500 animate-pulse' : 'text-gray-400'}`}
+            />
+          </div>
+
+          {/* Search Input */}
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={placeholder}
+            className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg
+                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                     disabled:bg-gray-100 disabled:cursor-not-allowed
+                     text-sm"
+            disabled={loading}
           />
+
+          {/* Clear Button */}
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center
+                       text-gray-400 hover:text-gray-600 focus:outline-none"
+              aria-label="Clear search"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
-        {/* Search Input */}
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={placeholder}
-          className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg
-                   focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                   disabled:bg-gray-100 disabled:cursor-not-allowed
-                   text-sm"
+        {/* Search Button */}
+        <button
+          type="button"
+          onClick={handleSearch}
           disabled={loading}
-        />
-
-        {/* Clear Button */}
-        {searchTerm && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center
-                     text-gray-400 hover:text-gray-600 focus:outline-none"
-            aria-label="Clear search"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
+          className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700
+                   focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                   disabled:bg-blue-300 disabled:cursor-not-allowed
+                   text-sm font-medium whitespace-nowrap"
+        >
+          {loading ? 'Searching...' : 'Search'}
+        </button>
       </div>
-
-      {/* Search Results Counter */}
-      {searchTerm && (
-        <div className="absolute top-full left-0 mt-1">
-          <span className="text-xs text-gray-500">
-            {loading ? 'Searching...' : `Filtering by: "${searchTerm}"`}
-          </span>
-        </div>
-      )}
     </div>
   );
-}
-
-// Debounce utility function
-function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number,
-): T & { cancel: () => void } {
-  let timeout: NodeJS.Timeout | null = null;
-
-  const debounced = (...args: Parameters<T>) => {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-    timeout = setTimeout(() => func(...args), wait);
-  };
-
-  debounced.cancel = () => {
-    if (timeout) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-  };
-
-  return debounced as T & { cancel: () => void };
 }
 ```
 
 Key features:
 
-- **Debouncing**: Prevents excessive API calls during typing
-- **Visual Feedback**: Loading states and search indicators
+- **Search Button**: Explicit search trigger prevents unnecessary API calls
+- **Enter Key Support**: Press Enter to search for better UX
+- **Visual Feedback**: Loading states and search button indicators
 - **Accessibility**: Proper ARIA labels and keyboard navigation
-- **Clear Functionality**: Easy way to reset search
+- **Clear Functionality**: Easy way to reset search and automatically clear results
 - **Responsive Design**: Works on mobile and desktop
 
-> [!TIP] > **Debouncing Performance**: The 300ms default provides a good balance between responsiveness and performance. Adjust based on your API response times and user experience requirements.
+> [!TIP]
+> **Search Button Benefits**: Using a search button provides predictable behavior, prevents input focus issues, and gives users control over when searches are performed. This approach is more reliable than automatic filtering while typing.
 
 ### Export Components
 
@@ -500,11 +476,11 @@ For improved performance, modify the hook to use server actions directly:
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { type GetAllClashesQuery } from '@/gql/graphql';
+import { type GetAllClashesForFilterQuery } from '@/gql/graphql';
 import { filterClashes } from './actions';
 
 // Extract the clash type from the query result
-type ClashFromQuery = GetAllClashesQuery['clashes'][0];
+type ClashFromQuery = GetAllClashesForFilterQuery['clashes'][0];
 
 export function useClashes(): UseClashesReturn {
   const [clashes, setClashes] = useState<ClashFromQuery[]>([]);
@@ -558,12 +534,13 @@ Benefits of direct server action usage:
 Test these scenarios:
 
 1. **Initial Load**: All clashes displayed without filter
-2. **Search Functionality**: Filter by title and description
-3. **Empty Results**: Graceful handling of no matches
-4. **Debouncing**: Reduced API calls during rapid typing
+2. **Search Functionality**: Filter by title and description using search button
+3. **Enter Key Support**: Press Enter to trigger search
+4. **Empty Results**: Graceful handling of no matches
 5. **Error Handling**: Network failures and server errors
 6. **Clear Function**: Reset search to show all clashes
-7. **Loading States**: Visual feedback during search
+7. **Loading States**: Visual feedback during search (button shows "Searching...")
+8. **Focus Behavior**: Input maintains focus during searches
 
 ## URL State Management (Advanced)
 
@@ -576,31 +553,32 @@ For enhanced UX, synchronize the filter state with URL parameters:
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function ClashFilter({ onFilter }: ClashFilterProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || '');
 
-  // Update URL when search term changes
-  const updateURL = useCallback(
-    debounce((term: string) => {
-      const params = new URLSearchParams(searchParams);
-      if (term) {
-        params.set('q', term);
-      } else {
-        params.delete('q');
-      }
-      router.push(`?${params.toString()}`, { scroll: false });
-    }, 300),
-    [router, searchParams],
-  );
-
-  useEffect(() => {
-    updateURL(searchTerm);
+  // Update URL when search is performed
+  const handleSearch = () => {
+    const params = new URLSearchParams(searchParams);
+    if (searchTerm.trim()) {
+      params.set('q', searchTerm.trim());
+    } else {
+      params.delete('q');
+    }
+    router.push(`?${params.toString()}`, { scroll: false });
     onFilter(searchTerm);
-  }, [searchTerm, updateURL, onFilter]);
+  };
+
+  const handleClear = () => {
+    setSearchTerm('');
+    const params = new URLSearchParams(searchParams);
+    params.delete('q');
+    router.push(`?${params.toString()}`, { scroll: false });
+    onFilter('');
+  };
 
   // Rest of component implementation...
 }
@@ -646,7 +624,7 @@ By completing this workshop, you'll master:
 - **[Route Handlers](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)** for API endpoint creation
 - **[Custom Hooks](https://react.dev/learn/reusing-logic-with-custom-hooks)** for data management
 - **Client-Side Data Fetching** patterns and error handling
-- **Debouncing Techniques** for performance optimization
+- **Search Button Patterns** for predictable user interactions
 - **Component Integration** and state synchronization
 
 > [!IMPORTANT] > **Next.js Route Handlers Documentation**: This workshop follows the official [Route Handlers Guide](https://nextjs.org/docs/app/building-your-application/routing/route-handlers). Refer to it for advanced patterns like middleware, authentication, and caching strategies.
