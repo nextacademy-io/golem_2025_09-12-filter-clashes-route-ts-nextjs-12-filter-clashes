@@ -10,7 +10,8 @@ Before proceeding, familiarize yourself with Next.js API concepts:
 - **[Dynamic Route Segments](https://nextjs.org/docs/app/building-your-application/routing/dynamic-routes)** - For parameterized routes
 - **[Custom Hooks](https://react.dev/learn/reusing-logic-with-custom-hooks)** - Building reusable data fetching logic
 
-> [!IMPORTANT] > **Client vs Server Data Fetching**: While Server Components excel at initial data loading, interactive filtering requires client-side fetching to update the UI dynamically without page refreshes.
+> [!IMPORTANT]
+> **Client vs Server Data Fetching**: While Server Components excel at initial data loading, interactive filtering requires client-side fetching to update the UI dynamically without page refreshes.
 
 ## Project Structure Setup
 
@@ -627,4 +628,5 @@ By completing this workshop, you'll master:
 - **Search Button Patterns** for predictable user interactions
 - **Component Integration** and state synchronization
 
-> [!IMPORTANT] > **Next.js Route Handlers Documentation**: This workshop follows the official [Route Handlers Guide](https://nextjs.org/docs/app/building-your-application/routing/route-handlers). Refer to it for advanced patterns like middleware, authentication, and caching strategies.
+> [!IMPORTANT]
+> **Next.js Route Handlers Documentation**: This workshop follows the official [Route Handlers Guide](https://nextjs.org/docs/app/building-your-application/routing/route-handlers). Refer to it for advanced patterns like middleware, authentication, and caching strategies.
